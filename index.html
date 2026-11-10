@@ -20,6 +20,7 @@
   --display:"Fredoka","Nunito",ui-rounded,system-ui,sans-serif; --body:"Nunito",system-ui,sans-serif;
   color-scheme:dark;
 }
+[hidden]{display:none!important}
 html,body{height:100%}
 body{background:radial-gradient(120% 80% at 50% 0%,var(--bg2),var(--bg) 70%);background-color:var(--bg);color:var(--ink);font-family:var(--body);
   -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overflow:hidden}
@@ -227,7 +228,7 @@ document.getElementById("m-easy").onclick=()=>setMode("easy");
 document.getElementById("m-norm").onclick=()=>setMode("norm");
 addEventListener("resize",()=>S.game&&sizeShelf());
 
-if(!S.game||!S.game.b)newLevel();else render(true);
+if(!S.game||!S.game.b)newLevel();else{render(true);if(isSolved(S.game.b))win()}
 </script>
 </body>
 </html>
