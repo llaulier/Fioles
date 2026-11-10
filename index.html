@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-title" content="Fioles">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#141029">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box;height:100%}body{margin:0}</style>
+<title>Fioles</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;800&display=swap">
+<style>
+/* Layout : un seul écran, barre du haut (niveau / coups), étagère de fioles qui s'adapte, barre d'outils en bas. Univers deliberément sombre (laboratoire de nuit), thème unique. */
+:root{
+  --bg:#141029; --bg2:#1d1840; --glass:rgba(200,210,255,.16); --glass-edge:rgba(220,228,255,.42);
+  --ink:#ece9ff; --muted:#a29dc9; --accent:#ffc94a; --btn:#2a2457; --btn-edge:#3d3678;
+  --display:"Fredoka","Nunito",ui-rounded,system-ui,sans-serif; --body:"Nunito",system-ui,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:radial-gradient(120% 80% at 50% 0%,var(--bg2),var(--bg) 70%);background-color:var(--bg);color:var(--ink);font-family:var(--body);
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overflow:hidden}
+.app{height:100%;display:flex;flex-direction:column;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));box-sizing:border-box;max-width:820px;margin:0 auto}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{font-family:var(--display);font-weight:700;font-size:1.5rem;margin:0;letter-spacing:.01em}
+h1 span{color:var(--accent)}
+.stats{display:flex;gap:8px;font-variant-numeric:tabular-nums}
+.chip{background:var(--btn);border:1px solid var(--btn-edge);border-radius:999px;padding:5px 12px;font-weight:800;font-size:.85rem;white-space:nowrap}
+.chip small{color:var(--muted);font-weight:600;margin-right:4px;text-transform:uppercase;letter-spacing:.06em;font-size:.68rem}
+.modes{display:flex;gap:6px;margin-top:10px}
+.modes button{flex:1}
+.shelf{flex:1;min-height:0;display:flex;flex-wrap:wrap;align-content:center;justify-content:center;gap:var(--gap,14px) var(--gapx,10px);padding:10px 0}
+.bottle{position:relative;width:var(--bw,48px);height:calc(var(--bw,48px)*3.1);cursor:pointer;transition:transform .18s ease;outline:none}
+.bottle .neck{position:absolute;left:28%;right:28%;top:0;height:12%;border:2px solid var(--glass-edge);border-bottom:none;border-radius:6px 6px 0 0;background:var(--glass)}
+.bottle .body{position:absolute;left:0;right:0;top:11%;bottom:0;border:2px solid var(--glass-edge);border-radius:12px 12px 22px 22px;background:var(--glass);overflow:hidden;display:flex;flex-direction:column-reverse;padding:3px 3px 4px;box-sizing:border-box}
+.bottle .body::after{content:"";position:absolute;left:14%;top:6%;width:12%;bottom:12%;border-radius:8px;background:linear-gradient(rgba(255,255,255,.35),rgba(255,255,255,.05));pointer-events:none}
+.seg{height:calc((100% - 6px)/4);flex:none;box-shadow:inset 0 -3px 0 rgba(0,0,0,.14),inset 0 2px 0 rgba(255,255,255,.18)}
+.seg:first-child{border-radius:0 0 17px 17px}
+.seg.new{animation:fill .32s ease-out both;transform-origin:bottom}
+@keyframes fill{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.bottle.sel{transform:translateY(-16px)}
+.bottle.done .body{border-color:var(--accent);box-shadow:0 0 12px rgba(255,201,74,.35)}
+.bottle.shake{animation:shake .3s}
+@keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.bottle:focus-visible .body{outline:3px solid var(--accent);outline-offset:3px}
+.tools{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-bottom:4px}
+button{font:inherit;font-weight:800;color:var(--ink);background:var(--btn);border:1px solid var(--btn-edge);border-radius:14px;padding:11px 8px;cursor:pointer;touch-action:manipulation}
+button:active{transform:translateY(1px)}
+button:disabled{opacity:.4;cursor:default}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.on{background:var(--accent);color:#2a1d00;border-color:var(--accent)}
+.tools button .k{display:block;font-size:.68rem;color:var(--muted);font-weight:600}
+.overlay{position:fixed;inset:0;background:rgba(10,8,25,.72);display:grid;place-items:center;padding:24px;z-index:20}
+.card{background:var(--bg2);border:1px solid var(--btn-edge);border-radius:22px;padding:26px 24px;text-align:center;max-width:320px;width:100%}
+.card h2{font-family:var(--display);font-size:2rem;margin:0 0 6px;color:var(--accent)}
+.card p{margin:0 0 18px;color:var(--muted)}
+.card button{width:100%;background:var(--accent);color:#2a1d00;border-color:var(--accent);font-size:1.05rem}
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--btn);border:1px solid var(--btn-edge);padding:8px 16px;border-radius:999px;font-weight:700;font-size:.9rem;z-index:15}
+@media (prefers-reduced-motion:reduce){.bottle,.seg.new,.bottle.shake{transition:none;animation:none}}
+</style>
+
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Fioles<span>.</span></h1>
+    <div class="stats">
+      <div class="chip"><small>Niveau</small><span id="lvl">1</span></div>
+      <div class="chip"><small>Coups</small><span id="moves">0</span></div>
+    </div>
+  </header>
+  <div class="modes" role="group" aria-label="Difficulté">
+    <button id="m-easy" type="button">Facile</button>
+    <button id="m-norm" type="button">Normal</button>
+  </div>
+  <main class="shelf" id="shelf" aria-label="Fioles"></main>
+  <div class="tools">
+    <button id="undo" type="button">↶ Annuler</button>
+    <button id="restart" type="button">⟲ Recommencer</button>
+    <button id="extra" type="button">＋ Fiole<span class="k" id="extraK">1 dispo</span></button>
+  </div>
+</div>
+<div class="overlay" id="win" hidden>
+  <div class="card">
+    <h2>Bravo !</h2>
+    <p id="winTxt">Toutes les fioles sont triées.</p>
+    <button id="next" type="button">Niveau suivant</button>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const CAP=4;
+const COLORS=["#ef3b4f","#ff8a1f","#ffd83a","#8ee23b","#1f9e5a","#4cc3f5","#2f5fe0","#8a3ff0","#ff5fb0","#22c9b4","#9a5a2c","#e9e6f5"];
+const MODES={easy:{start:3,every:3,max:7},norm:{start:5,every:2,max:12}};
+const KEY="fioles-v1";
+let S=load()||{mode:"easy",levels:{easy:1,norm:1},game:null};
+let sel=-1, hist=[], toastT;
+
+function load(){try{return JSON.parse(localStorage.getItem(KEY))}catch(e){return null}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+function nColors(mode,lvl){const m=MODES[mode];return Math.min(m.max,m.start+Math.floor((lvl-1)/m.every))}
+
+function rnd(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+
+// Coup valide ?
+function canPour(b,i,j){
+  if(i===j)return false;const f=b[i],t=b[j];
+  if(!f.length||t.length>=CAP)return false;
+  return !t.length||t[t.length-1]===f[f.length-1];
+}
+function pour(b,i,j){
+  const f=b[i],t=b[j],c=f[f.length-1];let n=0;
+  while(f.length&&f[f.length-1]===c&&t.length<CAP){t.push(f.pop());n++}
+  return n;
+}
+const uniform=x=>x.every(c=>c===x[0]);
+const isSolved=b=>b.every(x=>!x.length||(x.length===CAP&&uniform(x)));
+
+// Solveur DFS : vérifie qu'un niveau a au moins une solution
+function solvable(start){
+  const seen=new Set();let nodes=0;
+  const key=b=>b.map(x=>x.join(",")).sort().join("|");
+  function dfs(b){
+    if(isSolved(b))return true;
+    if(++nodes>60000)return false;
+    const k=key(b);if(seen.has(k))return false;seen.add(k);
+    for(let i=0;i<b.length;i++){
+      const f=b[i];if(!f.length||(f.length===CAP&&uniform(f)))continue;
+      let emptyTried=false;
+      for(let j=0;j<b.length;j++){
+        if(!canPour(b,i,j))continue;
+        if(!b[j].length){if(uniform(f)||emptyTried)continue;emptyTried=true}
+        const nb=b.map(x=>x.slice());pour(nb,i,j);
+        if(dfs(nb))return true;
+      }
+    }
+    return false;
+  }
+  return dfs(start);
+}
+
+function newLevel(){
+  const lvl=S.levels[S.mode],n=nColors(S.mode,lvl);
+  let b,tries=0;
+  do{
+    const pool=[];for(let c=0;c<n;c++)for(let k=0;k<CAP;k++)pool.push(c);
+    rnd(pool);b=[];for(let c=0;c<n;c++)b.push(pool.slice(c*CAP,c*CAP+CAP));
+    b.push([],[]);tries++;
+  }while(tries<40&&(b.some(x=>x.length===CAP&&uniform(x))||!solvable(b)));
+  S.game={start:b.map(x=>x.slice()),b,moves:0,extra:1,lvl,mode:S.mode};
+  hist=[];sel=-1;save();render(true);
+}
+
+function sizeShelf(){
+  const sh=document.getElementById("shelf"),n=S.game.b.length;
+  const W=sh.clientWidth,H=sh.clientHeight-20;
+  let best=40,bestCols=n;
+  for(let cols=Math.min(n,9);cols>=2;cols--){
+    const rows=Math.ceil(n/cols);
+    const bw=Math.min((W-(cols-1)*10)/cols,(H-(rows-1)*30)/(rows*3.1+0.4),64);
+    if(bw>best){best=bw;bestCols=cols}
+  }
+  sh.style.setProperty("--bw",Math.floor(best)+"px");
+  sh.style.maxWidth=(bestCols*Math.floor(best)+(bestCols-1)*10+2)+"px";
+  sh.style.margin="0 auto";sh.style.width="100%";
+  sh.style.setProperty("--gap",Math.max(14,best*0.35)+"px");
+}
+
+function render(full,fresh){
+  const g=S.game,sh=document.getElementById("shelf");
+  document.getElementById("lvl").textContent=g.lvl;
+  document.getElementById("moves").textContent=g.moves;
+  document.getElementById("undo").disabled=!hist.length;
+  document.getElementById("extra").disabled=!g.extra;
+  document.getElementById("extraK").textContent=g.extra?"1 dispo":"utilisée";
+  document.getElementById("m-easy").classList.toggle("on",S.mode==="easy");
+  document.getElementById("m-norm").classList.toggle("on",S.mode==="norm");
+  sh.innerHTML="";
+  g.b.forEach((x,i)=>{
+    const el=document.createElement("div");el.className="bottle";el.tabIndex=0;
+    el.setAttribute("role","button");
+    el.setAttribute("aria-label","Fiole "+(i+1)+(x.length?", "+x.length+" couche"+(x.length>1?"s":""):", vide"));
+    if(i===sel)el.classList.add("sel");
+    if(x.length===CAP&&uniform(x))el.classList.add("done");
+    el.innerHTML='<div class="neck"></div><div class="body"></div>';
+    const body=el.lastChild;
+    x.forEach((c,k)=>{const s=document.createElement("div");s.className="seg";s.style.background=COLORS[c];
+      if(fresh&&fresh.j===i&&k>=x.length-fresh.n)s.classList.add("new");body.appendChild(s)});
+    el.onclick=()=>tap(i);
+    el.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();tap(i)}};
+    sh.appendChild(el);
+  });
+  if(full)sizeShelf();
+}
+
+function tap(i){
+  const g=S.game;
+  if(sel<0){if(g.b[i].length){sel=i;render()}return}
+  if(sel===i){sel=-1;render();return}
+  if(canPour(g.b,sel,i)){
+    hist.push(g.b.map(x=>x.slice()));
+    const n=pour(g.b,sel,i);g.moves++;sel=-1;save();render(false,{j:i,n});
+    if(isSolved(g.b))setTimeout(win,450);
+  }else if(g.b[i].length){sel=i;render()}
+  else{const el=document.getElementById("shelf").children[sel];el.classList.remove("shake");void el.offsetWidth;el.classList.add("shake")}
+}
+
+function win(){
+  document.getElementById("winTxt").textContent="Niveau "+S.game.lvl+" réussi en "+S.game.moves+" coups.";
+  document.getElementById("win").hidden=false;
+}
+function toast(t){const e=document.getElementById("toast");e.textContent=t;e.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>e.hidden=true,1600)}
+
+document.getElementById("next").onclick=()=>{document.getElementById("win").hidden=true;S.levels[S.mode]++;newLevel()};
+document.getElementById("undo").onclick=()=>{if(!hist.length)return;S.game.b=hist.pop();S.game.moves++;sel=-1;save();render()};
+document.getElementById("restart").onclick=()=>{const g=S.game;g.b=g.start.map(x=>x.slice());g.moves=0;g.extra=1;hist=[];sel=-1;save();render(true);toast("Niveau recommencé")};
+document.getElementById("extra").onclick=()=>{const g=S.game;if(!g.extra)return;g.extra=0;g.b.push([]);hist=[];sel=-1;save();render(true);toast("Fiole vide ajoutée")};
+function setMode(m){if(S.mode===m)return;S.mode=m;const g=S.game;
+  if(g&&g.mode!==m){S.saved=S.saved||{};S.saved[g.mode]=g;S.game=S.saved[m]||null}
+  if(!S.game)newLevel();else{hist=[];sel=-1;save();render(true)}}
+document.getElementById("m-easy").onclick=()=>setMode("easy");
+document.getElementById("m-norm").onclick=()=>setMode("norm");
+addEventListener("resize",()=>S.game&&sizeShelf());
+
+if(!S.game||!S.game.b)newLevel();else render(true);
+</script>
+</body>
+</html>
